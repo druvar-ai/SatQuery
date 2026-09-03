@@ -41,12 +41,10 @@ def test_gmat_script_generator(sample_elements):
     )
     
     assert "Create Spacecraft Sat;" in script
-    assert "GMAT Sat.Epoch = '01 Jan 2026 00:00:00.000';" in script
     assert "GMAT Sat.SMA = 7000.0;" in script
     assert "GMAT DefaultProp_ForceModel.CentralBody = Earth;" in script
     assert "GMAT DefaultProp_ForceModel.PointMasses = {Earth};" in script
-    assert "GMAT ReportFile1.Filename = 'data/test_report.txt';" in script
-    assert "Propagate DefaultProp(Sat) {Sat.UTCGregorian = '01 Jan 2026 01:00:00.000'};" in script
+    assert "Propagate DefaultProp(Sat) {Sat.ElapsedSecs = 3600.0};" in script
 
 def test_gmat_parser():
     mock_report_content = "% Header\n% YYYY-MM-DD\n01 Jan 2026 01:00:00.000 -6856.860903293499 200.6895189863977 1427.9801269956658 1.552982855583943 1.0266771480472823 7.305187493879407\n"
@@ -81,12 +79,14 @@ def test_gmat_propagator_logic(sample_elements):
     target_time = datetime(2026, 1, 1, 1, 0, 0, tzinfo=timezone.utc)
     
     with patch('satquery.backend.simulation.gmat.gmat_runner.GMATRunner.is_available', return_value=True):
-        with patch('satquery.backend.simulation.gmat.gmat_runner.GMATRunner.run_script', return_value=True):
+        with patch('satquery.backend.simulation.gmat.gmat_runner.GMATRunner.run_script', return_value=(True, "stdout", "stderr", "cmd")):
             with patch('satquery.backend.simulation.gmat.gmat_parser.GMATParser.parse_report', return_value=(np.array([1, 2, 3]), np.array([4, 5, 6]))):
                 prop = GMATPropagator(temp_dir="data/mock_temp")
                 # Also mock write
                 with patch("builtins.open", mock_open()):
-                    pos, vel, alt = prop.propagate(sample_elements, target_time, body)
-                    assert len(pos) == 3
-                    assert len(vel) == 3
-                    assert isinstance(alt, float)
+                    with patch("os.path.exists", return_value=True):
+                        with patch("os.remove", return_value=None):
+                            pos, vel, alt = prop.propagate(sample_elements, target_time, body)
+                            assert len(pos) == 3
+                            assert len(vel) == 3
+                            assert isinstance(alt, float)

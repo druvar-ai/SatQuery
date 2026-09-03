@@ -71,19 +71,20 @@ class AnalyticalPropagator(OrbitPropagator):
         
         # Transformation matrix (Perifocal to Body-Centered Inertial)
         # Using RAAN, inclination, argument of periapsis
+        # Note: Standard perifocal-to-ECI rotation uses R3(-RAAN) R1(-inclination) R3(-argument of periapsis).
         R3_W = np.array([
-            [math.cos(-raan), -math.sin(-raan), 0],
-            [math.sin(-raan), math.cos(-raan), 0],
+            [math.cos(raan), -math.sin(raan), 0],
+            [math.sin(raan), math.cos(raan), 0],
             [0, 0, 1]
         ])
         R1_i = np.array([
             [1, 0, 0],
-            [0, math.cos(-inc), -math.sin(-inc)],
-            [0, math.sin(-inc), math.cos(-inc)]
+            [0, math.cos(inc), -math.sin(inc)],
+            [0, math.sin(inc), math.cos(inc)]
         ])
         R3_w = np.array([
-            [math.cos(-arg_p), -math.sin(-arg_p), 0],
-            [math.sin(-arg_p), math.cos(-arg_p), 0],
+            [math.cos(arg_p), -math.sin(arg_p), 0],
+            [math.sin(arg_p), math.cos(arg_p), 0],
             [0, 0, 1]
         ])
         

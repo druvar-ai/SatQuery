@@ -26,29 +26,51 @@ class GMATPropagator(OrbitPropagator):
             
         # 1. Prepare temporary files
         run_id = uuid.uuid4().hex[:8]
-        script_path = os.path.join(self.temp_dir, f"prop_{run_id}.script")
-        report_path = os.path.join(self.temp_dir, f"report_{run_id}.txt")
+        script_path = os.path.abspath(os.path.join(self.temp_dir, f"prop_{run_id}.script"))
+        report_path = os.path.abspath(os.path.join(self.temp_dir, f"report_{run_id}.txt"))
+        
+        # We need to give GMAT the Windows equivalent paths if we're on WSL
+        win_report_path = GMATRunner.to_windows_path(report_path)
         
         # 2. Generate Script
         script_content = GMATScriptGenerator.generate_script(
             elements=elements,
             target_time=target_time,
             body=body,
-            output_report_path=report_path
+            output_report_path=win_report_path
         )
         
         with open(script_path, 'w') as f:
             f.write(script_content)
             
         # 3. Run GMAT
-        success = GMATRunner.run_script(script_path)
+        success, stdout, stderr, cmd_str = GMATRunner.run_script(script_path)
+        
         if not success:
-            raise RuntimeError("GMAT execution failed.")
+            err_msg = (
+                f"GMAT execution failed.\n"
+                f"Command: {cmd_str}\n"
+                f"Script retained at: {script_path}\n"
+                f"STDOUT:\n{stdout}\n"
+                f"STDERR:\n{stderr}"
+            )
+            logger.error(err_msg)
+            raise RuntimeError(err_msg)
             
         # 4. Parse output
         result = GMATParser.parse_report(report_path)
         
-        # Clean up (optional, but good practice to avoid polluting disk)
+        if result is None:
+            err_msg = (
+                f"Failed to parse GMAT report output at {report_path}.\n"
+                f"Script retained at: {script_path}\n"
+                f"STDOUT:\n{stdout}\n"
+                f"STDERR:\n{stderr}"
+            )
+            logger.error(err_msg)
+            raise RuntimeError(err_msg)
+            
+        # Clean up on success
         try:
             if os.path.exists(script_path):
                 os.remove(script_path)
@@ -56,9 +78,6 @@ class GMATPropagator(OrbitPropagator):
                 os.remove(report_path)
         except Exception:
             pass
-            
-        if result is None:
-            raise RuntimeError("Failed to parse GMAT report output.")
             
         pos, vel = result
         
