@@ -1,0 +1,143 @@
+{
+  "timestamp": "2026-09-03T21:48:36.099715+00:00",
+  "body": "moon",
+  "spacecraft": [
+    {
+      "spacecraft_id": "SAT-000",
+      "timestamp": "2026-09-03T21:48:36.099715+00:00",
+      "celestial_body_id": "moon",
+      "position_km": [
+        1082.610080567663,
+        -1494.8703028142015,
+        13.866272904939677
+      ],
+      "velocity_km_s": [
+        -1.2679624737754724,
+        -1.0179384166809013,
+        -0.014230298971986431
+      ],
+      "altitude_km": 108.37194753491076,
+      "orbital_elements": {
+        "semi_major_axis_km": 1837.4,
+        "eccentricity": 0.049779038936900194,
+        "inclination_deg": 179.32233269221638,
+        "raan_deg": 93.51880570094974,
+        "arg_periapsis_deg": 137.52012010150418,
+        "true_anomaly_deg": 98.08665397670353,
+        "epoch": "2026-09-03T21:48:36.099524+00:00"
+      },
+      "visibility_status": "unknown",
+      "sensor_state": "sar"
+    },
+    {
+      "spacecraft_id": "SAT-001",
+      "timestamp": "2026-09-03T21:48:36.099715+00:00",
+      "celestial_body_id": "moon",
+      "position_km": [
+        -1647.0703233671074,
+        -892.0412142086213,
+        40.8491689967774
+      ],
+      "velocity_km_s": [
+        0.4555958218743001,
+        -0.8510279168635857,
+        -1.2780869839750273
+      ],
+      "altitude_km": 136.16527310129936,
+      "orbital_elements": {
+        "semi_major_axis_km": 1837.4,
+        "eccentricity": 0.024434316301795274,
+        "inclination_deg": 52.943444533495814,
+        "raan_deg": 150.61679710153595,
+        "arg_periapsis_deg": 217.08140743132603,
+        "true_anomaly_deg": 215.51585598026557,
+        "epoch": "2026-09-03T21:48:36.099603+00:00"
+      },
+      "visibility_status": "unknown",
+      "sensor_state": "sar"
+    },
+    {
+      "spacecraft_id": "SAT-002",
+      "timestamp": "2026-09-03T21:48:36.099715+00:00",
+      "celestial_body_id": "moon",
+      "position_km": [
+        1328.492034441895,
+        -375.5613831921375,
+        1296.3851130453613
+      ],
+      "velocity_km_s": [
+        0.6761555697472152,
+        -1.013609471326178,
+        -1.0123036874415667
+      ],
+      "altitude_km": 156.41936822031425,
+      "orbital_elements": {
+        "semi_major_axis_km": 1837.4,
+        "eccentricity": 0.032659860755100266,
+        "inclination_deg": 111.36055779443922,
+        "raan_deg": 37.33198535925751,
+        "arg_periapsis_deg": 246.59988125099648,
+        "true_anomaly_deg": 199.2904620502185,
+        "epoch": "2026-09-03T21:48:36.099640+00:00"
+      },
+      "visibility_status": "unknown",
+      "sensor_state": "multispectral"
+    },
+    {
+      "spacecraft_id": "SAT-003",
+      "timestamp": "2026-09-03T21:48:36.099715+00:00",
+      "celestial_body_id": "moon",
+      "position_km": [
+        1347.516905235116,
+        -926.7454286663016,
+        -764.4629155043114
+      ],
+      "velocity_km_s": [
+        1.0147838070150117,
+        1.2623336334409978,
+        0.3741558798408028
+      ],
+      "altitude_km": 67.88735901785526,
+      "orbital_elements": {
+        "semi_major_axis_km": 1837.4,
+        "eccentricity": 0.034262896464248266,
+        "inclination_deg": 28.285950076111913,
+        "raan_deg": 154.2177841595255,
+        "arg_periapsis_deg": 182.29679406874322,
+        "true_anomaly_deg": 298.9661513693639,
+        "epoch": "2026-09-03T21:48:36.099669+00:00"
+      },
+      "visibility_status": "unknown",
+      "sensor_state": "multispectral"
+    },
+    {
+      "spacecraft_id": "SAT-004",
+      "timestamp": "2026-09-03T21:48:36.099715+00:00",
+      "celestial_body_id": "moon",
+      "position_km": [
+        217.71283496796602,
+        -1709.2609543890314,
+        473.03782599974784
+      ],
+      "velocity_km_s": [
+        0.9699869450674076,
+        0.4779965835261227,
+        1.2845378590263892
+      ],
+      "altitude_km": 49.423067216018126,
+      "orbital_elements": {
+        "semi_major_axis_km": 1837.4,
+        "eccentricity": 0.027532838905392525,
+        "inclination_deg": 54.035006481596035,
+        "raan_deg": 274.23153360040254,
+        "arg_periapsis_deg": 162.18566713508537,
+        "true_anomaly_deg": 1.2777628541454256,
+        "epoch": "2026-09-03T21:48:36.099697+00:00"
+      },
+      "visibility_status": "unknown",
+      "sensor_state": "multispectral"
+    }
+  ],
+  "targets": [],
+  "observations": []
+}
