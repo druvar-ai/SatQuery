@@ -100,10 +100,15 @@ class AnalyticalPropagator(OrbitPropagator):
         return pos_inertial, vel_inertial, altitude
 
 def get_propagator(engine_type: str = "local") -> OrbitPropagator:
-    if engine_type == "local":
+    if engine_type == "local" or engine_type == "analytical":
         return AnalyticalPropagator()
     elif engine_type == "gmat":
-        # Placeholder for future GMAT integration
-        raise NotImplementedError("GMAT propagator not yet integrated. Use 'local'.")
+        from satquery.backend.simulation.gmat.gmat_propagator import GMATPropagator
+        from satquery.backend.simulation.gmat.gmat_runner import GMATRunner
+        if GMATRunner.is_available():
+            return GMATPropagator()
+        else:
+            # Fallback to analytical gracefully
+            return AnalyticalPropagator()
     else:
         raise ValueError(f"Unknown propagation engine: {engine_type}")

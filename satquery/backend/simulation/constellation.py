@@ -14,7 +14,11 @@ class ConstellationManager:
         self.spacecraft: Dict[str, Spacecraft] = {}
         self.orbit_elements: Dict[str, OrbitalElements] = {}
         self.states: Dict[str, SpacecraftState] = {}
+        # We will re-initialize this per propagation call or via API
         self.propagator = get_propagator(settings.simulation_engine)
+        
+    def set_engine(self, engine_type: str):
+        self.propagator = get_propagator(engine_type)
         
     def add_spacecraft(self, sc: Spacecraft, elements: OrbitalElements):
         self.spacecraft[sc.spacecraft_id] = sc
@@ -38,6 +42,10 @@ class ConstellationManager:
             try:
                 pos, vel, alt = self.propagator.propagate(elements, current_time, body)
                 
+                
+                # Determine source dynamically based on the actual class returned
+                source_label = "GMAT" if self.propagator.__class__.__name__ == "GMATPropagator" else "ANALYTICAL"
+                
                 state = SpacecraftState(
                     spacecraft_id=sc_id,
                     timestamp=current_time,
@@ -47,7 +55,8 @@ class ConstellationManager:
                     altitude_km=alt,
                     orbital_elements=elements.model_dump(),
                     visibility_status="unknown",
-                    sensor_state=sc.sensors[0].sensor_type if sc.sensors else "idle"
+                    sensor_state=sc.sensors[0].sensor_type if sc.sensors else "idle",
+                    simulation_source=source_label
                 )
                 self.states[sc_id] = state
             except Exception as e:

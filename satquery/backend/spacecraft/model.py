@@ -30,3 +30,4 @@ class SpacecraftState(BaseModel):
     orbital_elements: Optional[Dict[str, Any]] = None
     visibility_status: str = "unknown"
     sensor_state: str = "idle"
+    simulation_source: str = "ANALYTICAL"

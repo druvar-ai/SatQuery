@@ -34,7 +34,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Start the API
+### 2. Configure Simulation Engine (Optional)
+SatQuery uses a local analytical Keplerian propagator by default. To use the high-fidelity GMAT backend:
+
+1. Download and install [GMAT](https://software.nasa.gov/software/GSC-17177-1).
+2. Set the `GMAT_BIN` environment variable:
+   - **Windows:** `$env:GMAT_BIN="C:\path\to\GMAT\bin\GMAT.exe"`
+   - **Linux/WSL:** `export GMAT_BIN="/path/to/GMAT/bin/GMAT"`
+3. Verify integration:
+   ```bash
+   python scripts/compare_propagators.py
+   ```
+
+### 3. Start the API
 ```bash
 uvicorn satquery.backend.api.main:app
 ```

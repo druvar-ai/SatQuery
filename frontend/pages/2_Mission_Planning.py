@@ -13,7 +13,26 @@ col1, col2 = st.columns([1, 2])
 
 with col1:
     st.subheader("Target Selection")
+    
+    # Check simulation status
+    try:
+        status_res = requests.get(f"{API_URL}/api/simulation/status")
+        status_data = status_res.json()
+        gmat_avail = status_data.get("gmat_available", False)
+        active_engine = status_data.get("active_engine", "analytical")
+        msg = status_data.get("message", "")
+    except:
+        gmat_avail, active_engine, msg = False, "analytical", "Backend unreachable"
+
+    if gmat_avail:
+        st.success(f"Simulation source: GMAT ({msg})")
+        engine_options = ["gmat", "analytical"]
+    else:
+        st.warning(f"Simulation source: ANALYTICAL FALLBACK ({msg})")
+        engine_options = ["analytical"]
+
     with st.form("planning_form"):
+        engine_selection = st.selectbox("Simulation Engine", engine_options)
         body_id = st.selectbox("Celestial Body", ["earth", "moon", "mars"])
         lat = st.number_input("Target Latitude (deg)", min_value=-90.0, max_value=90.0, value=0.0)
         lon = st.number_input("Target Longitude (deg)", min_value=-180.0, max_value=180.0, value=0.0)
@@ -22,6 +41,12 @@ with col1:
 with col2:
     st.subheader("Opportunities")
     if submit:
+        # First, ensure backend is using the requested engine before propagating
+        try:
+            requests.post(f"{API_URL}/api/simulation/run", json={"engine": engine_selection})
+        except:
+            pass
+            
         with st.spinner("Calculating access times..."):
             try:
                 res = requests.post(f"{API_URL}/api/observations/plan", json={

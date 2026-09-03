@@ -134,6 +134,37 @@ def step_simulation():
             
     return {"time": sim_clock.current_time}
 
+@app.post("/api/simulation/run")
+def run_simulation(data: dict):
+    # E.g. {"engine": "gmat", "duration_seconds": 3600, "step_seconds": 60}
+    engine = data.get("engine", "local")
+    constellation.set_engine(engine)
+    
+    # Step the simulation
+    # (For demo purposes, we'll just do a single step like the existing endpoint)
+    if sim_clock.running:
+        sim_clock.step()
+        constellation.propagate_all(sim_clock.current_time)
+    
+    return {"time": sim_clock.current_time}
+
+@app.get("/api/simulation/status")
+def get_simulation_status():
+    from satquery.backend.simulation.gmat.gmat_runner import GMATRunner
+    
+    gmat_avail = GMATRunner.is_available()
+    active_engine = "gmat" if constellation.propagator.__class__.__name__ == "GMATPropagator" else "analytical"
+    
+    msg = "GMAT available" if gmat_avail else "GMAT unavailable; using analytical fallback"
+    
+    return {
+        "active_engine": active_engine,
+        "gmat_available": gmat_avail,
+        "analytical_available": True,
+        "gmat_path": GMATRunner.get_gmat_bin(),
+        "message": msg
+    }
+
 @app.post("/api/demo/setup")
 def setup_demo_scenario():
     from satquery.backend.spacecraft.model import Spacecraft, Sensor
