@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from satquery.backend.models.base import RemoteSensingModel
 import logging
 

@@ -9,3 +9,4 @@ data/gmat_temp/
 satquery.db
 *.db
 *.sqlite3
+data/test_samples/SAMPLE_OPTICAL_*.npy
