@@ -6,3 +6,6 @@ venv/
 .venv/
 data/blender_export.json
 data/gmat_temp/
+satquery.db
+*.db
+*.sqlite3
