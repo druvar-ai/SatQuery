@@ -41,31 +41,35 @@ class ObservationPlanner:
                 
             sensor = sc.sensors[0] # Pick first sensor for MVP
             
-            # Simple simulation loop to find visibility windows
-            current_time = time_window_start
+            elements = self.constellation.orbit_elements.get(sc_id)
+            if not elements:
+                continue
+                
+            # Batch propagation for the entire time window
+            times, positions, velocities, altitudes = self.constellation.propagator.propagate_trajectory(
+                elements=elements,
+                start_time=time_window_start,
+                end_time=time_window_end,
+                timestep_seconds=timestep_seconds,
+                body=body
+            )
             
+            if len(times) == 0:
+                continue
+
             in_view = False
             window_start = None
             peak_time = None
             min_dist = float('inf')
             
-            # NOTE: For MVP we just step through time.
-            # In a real system, we'd use root-finding or analytical methods for access times.
-            while current_time <= time_window_end:
-                # Propagate orbit (in an optimized version, we'd propagate just one SC at a time)
-                # But here we assume state is either available or we can compute it on the fly.
-                elements = self.constellation.orbit_elements.get(sc_id)
-                if not elements:
-                    break
-                    
-                pos, vel, alt = self.constellation.propagator.propagate(elements, current_time, body)
+            # Simple line of sight (LOS) and elevation angle check
+            target_normal = target_pos / np.linalg.norm(target_pos)
+            
+            for i in range(len(times)):
+                current_time = times[i]
+                pos = positions[i]
                 
-                # Simple line of sight (LOS) and elevation angle check
                 dist = np.linalg.norm(pos - target_pos)
-                
-                # Check horizon/elevation
-                # Target normal vector
-                target_normal = target_pos / np.linalg.norm(target_pos)
                 sc_vector = pos - target_pos
                 sc_dir = sc_vector / dist
                 
@@ -110,8 +114,6 @@ class ObservationPlanner:
                         
                         # Reset
                         min_dist = float('inf')
-                        
-                current_time += timedelta(seconds=timestep_seconds)
                 
         # Sort by overall score
         opportunities.sort(key=lambda x: x.overall_score, reverse=True)

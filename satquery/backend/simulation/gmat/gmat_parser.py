@@ -51,3 +51,55 @@ class GMATParser:
         except Exception as e:
             logger.error(f"Error parsing GMAT report: {e}")
             return None
+
+    @staticmethod
+    def parse_report_batch(report_path: str) -> Optional[Tuple[list[datetime], np.ndarray, np.ndarray]]:
+        """
+        Parses all lines of a GMAT ReportFile.
+        Expected format: UTCGregorian X Y Z VX VY VZ
+        Returns:
+            times (List[datetime]): Timestamps of each state
+            positions (numpy array): Nx3 array of [x, y, z] in km
+            velocities (numpy array): Nx3 array of [vx, vy, vz] in km/s
+        """
+        if not os.path.exists(report_path):
+            logger.error(f"GMAT report file not found: {report_path}")
+            return None
+            
+        times = []
+        positions = []
+        velocities = []
+        
+        try:
+            from datetime import datetime, timezone
+            with open(report_path, 'r') as f:
+                lines = f.readlines()
+                
+            # Filter out empty lines and header (which usually contains % or column names)
+            data_lines = [l.strip() for l in lines if l.strip() and not l.startswith('%') and not l.startswith('Sat.UTCGregorian')]
+            
+            for line in data_lines:
+                tokens = line.split()
+                if len(tokens) < 10:
+                    continue
+                    
+                # Time tokens: e.g. 01 Jan 2026 01:00:00.000
+                time_str = " ".join(tokens[0:4])
+                dt = datetime.strptime(time_str, "%d %b %Y %H:%M:%S.%f").replace(tzinfo=timezone.utc)
+                
+                x, y, z = float(tokens[-6]), float(tokens[-5]), float(tokens[-4])
+                vx, vy, vz = float(tokens[-3]), float(tokens[-2]), float(tokens[-1])
+                
+                times.append(dt)
+                positions.append([x, y, z])
+                velocities.append([vx, vy, vz])
+                
+            if not times:
+                logger.error("GMAT report file contains no data rows.")
+                return None
+                
+            return times, np.array(positions), np.array(velocities)
+            
+        except Exception as e:
+            logger.error(f"Error parsing GMAT batch report: {e}")
+            return None

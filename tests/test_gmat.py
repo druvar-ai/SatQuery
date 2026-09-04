@@ -90,3 +90,50 @@ def test_gmat_propagator_logic(sample_elements):
                             assert len(pos) == 3
                             assert len(vel) == 3
                             assert isinstance(alt, float)
+
+def test_gmat_parser_batch():
+    mock_report_content = "% Header\n% YYYY-MM-DD\n01 Jan 2026 01:00:00.000 -6856.8 200.6 1427.9 1.5 1.0 7.3\n01 Jan 2026 01:01:00.000 -6800.0 250.0 1500.0 1.6 1.1 7.4\n"
+    with patch("builtins.open", mock_open(read_data=mock_report_content)):
+        with patch("os.path.exists", return_value=True):
+            res = GMATParser.parse_report_batch("dummy.txt")
+            assert res is not None
+            times, pos, vel = res
+            assert len(times) == 2
+            assert len(pos) == 2
+            assert len(vel) == 2
+            assert pos[0][0] == -6856.8
+            assert pos[1][0] == -6800.0
+
+def test_gmat_propagator_trajectory(sample_elements):
+    body = get_body("earth")
+    start_time = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    end_time = datetime(2026, 1, 1, 0, 2, 0, tzinfo=timezone.utc)
+    
+    # Mock parse_report_batch to return 3 points at 0, 60, 120 seconds
+    t0 = start_time
+    t1 = datetime(2026, 1, 1, 0, 1, 0, tzinfo=timezone.utc)
+    t2 = datetime(2026, 1, 1, 0, 2, 0, tzinfo=timezone.utc)
+    mock_times = [t0, t1, t2]
+    mock_pos = np.array([[1000, 0, 0], [1100, 0, 0], [1200, 0, 0]])
+    mock_vel = np.array([[10, 0, 0], [11, 0, 0], [12, 0, 0]])
+    
+    with patch('satquery.backend.simulation.gmat.gmat_runner.GMATRunner.is_available', return_value=True):
+        with patch('satquery.backend.simulation.gmat.gmat_runner.GMATRunner.run_script', return_value=(True, "stdout", "stderr", "cmd")):
+            with patch('satquery.backend.simulation.gmat.gmat_parser.GMATParser.parse_report_batch', return_value=(mock_times, mock_pos, mock_vel)):
+                prop = GMATPropagator(temp_dir="data/mock_temp")
+                with patch("builtins.open", mock_open()):
+                    with patch("os.path.exists", return_value=True):
+                        with patch("os.remove", return_value=None):
+                            times, pos, vel, alt = prop.propagate_trajectory(
+                                elements=sample_elements, 
+                                start_time=start_time, 
+                                end_time=end_time, 
+                                timestep_seconds=60, 
+                                body=body
+                            )
+                            assert len(times) == 3
+                            assert len(pos) == 3
+                            assert len(vel) == 3
+                            assert len(alt) == 3
+                            assert times[0] == start_time
+                            assert times[2] == end_time

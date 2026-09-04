@@ -28,7 +28,8 @@ class GMATScriptGenerator:
         elements: OrbitalElements, 
         target_time: datetime, 
         body: CelestialBody,
-        output_report_path: str
+        output_report_path: str,
+        step_size: float = 60.0
     ) -> str:
         epoch_str = cls._format_gmat_epoch(elements.epoch)
         target_epoch_str = cls._format_gmat_epoch(target_time)
@@ -74,10 +75,10 @@ GMAT DefaultProp_ForceModel.ErrorControl = None;
 Create Propagator DefaultProp;
 GMAT DefaultProp.FM = DefaultProp_ForceModel;
 GMAT DefaultProp.Type = RungeKutta89;
-GMAT DefaultProp.InitialStepSize = 60;
+GMAT DefaultProp.InitialStepSize = {step_size};
 GMAT DefaultProp.Accuracy = 9.999999999999999e-12;
 GMAT DefaultProp.MinStep = 0.001;
-GMAT DefaultProp.MaxStep = 2700;
+GMAT DefaultProp.MaxStep = {step_size};
 GMAT DefaultProp.MaxStepAttempts = 50;
 GMAT DefaultProp.StopIfAccuracyIsViolated = true;
 

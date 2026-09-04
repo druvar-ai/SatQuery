@@ -18,6 +18,18 @@ class OrbitPropagator(ABC):
         """
         pass
 
+    @abstractmethod
+    def propagate_trajectory(self, elements: OrbitalElements, start_time: datetime, end_time: datetime, timestep_seconds: float, body: CelestialBody) -> Tuple[list[datetime], np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Propagate orbit over a time window.
+        Returns:
+            times (List[datetime]): Timestamps of each state
+            positions (numpy array): Nx3 array of [x, y, z] in km
+            velocities (numpy array): Nx3 array of [vx, vy, vz] in km/s
+            altitudes (numpy array): Nx1 array of altitude in km
+        """
+        pass
+
 class AnalyticalPropagator(OrbitPropagator):
     def propagate(self, elements: OrbitalElements, target_time: datetime, body: CelestialBody) -> Tuple[np.ndarray, np.ndarray, float]:
         """
@@ -96,9 +108,28 @@ class AnalyticalPropagator(OrbitPropagator):
         pos_inertial = Q @ pos_perifocal
         vel_inertial = Q @ vel_perifocal
         
+        
         altitude = r - body.radius_km
         
         return pos_inertial, vel_inertial, altitude
+
+    def propagate_trajectory(self, elements: OrbitalElements, start_time: datetime, end_time: datetime, timestep_seconds: float, body: CelestialBody) -> Tuple[list[datetime], np.ndarray, np.ndarray, np.ndarray]:
+        from datetime import timedelta
+        times = []
+        positions = []
+        velocities = []
+        altitudes = []
+        
+        current_time = start_time
+        while current_time <= end_time:
+            pos, vel, alt = self.propagate(elements, current_time, body)
+            times.append(current_time)
+            positions.append(pos)
+            velocities.append(vel)
+            altitudes.append(alt)
+            current_time += timedelta(seconds=timestep_seconds)
+            
+        return times, np.array(positions), np.array(velocities), np.array(altitudes)
 
 def get_propagator(engine_type: str = "local") -> OrbitPropagator:
     if engine_type == "local" or engine_type == "analytical":
