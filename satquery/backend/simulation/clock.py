@@ -9,8 +9,8 @@ class SimulationClock(BaseModel):
     speed: float = 1.0
     running: bool = False
     
-    def step(self):
-        if self.running and self.current_time < self.end_time:
+    def step(self, force: bool = False):
+        if (self.running or force) and self.current_time < self.end_time:
             self.current_time += timedelta(seconds=self.timestep_seconds)
             
     def play(self):

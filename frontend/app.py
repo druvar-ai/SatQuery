@@ -8,7 +8,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8001"
 
 st.sidebar.title("🛰️ SatQuery Operations")
 st.sidebar.markdown("---")

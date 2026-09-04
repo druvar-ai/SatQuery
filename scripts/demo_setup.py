@@ -1,7 +1,7 @@
 import requests
 import time
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8001"
 
 def setup_demo():
     print("Initializing SatQuery Judge Demo...")

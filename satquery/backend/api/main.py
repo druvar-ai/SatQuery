@@ -117,21 +117,20 @@ def create_mission(mission_data: dict, db: Session = Depends(get_db)):
 # Step function for running without loop in background for demo purposes
 @app.post("/api/simulation/step")
 def step_simulation():
-    if sim_clock.running:
-        sim_clock.step()
-        constellation.propagate_all(sim_clock.current_time)
+    sim_clock.step(force=True)
+    constellation.propagate_all(sim_clock.current_time)
+    
+    # Export for Blender on step
+    try:
+        state_data = {
+            "time": sim_clock.current_time,
+            "spacecraft": [sc.model_dump() for sc in constellation.get_all_spacecraft()],
+            "states": {sc_id: state.model_dump() for sc_id, state in constellation.states.items()}
+        }
+        BlenderExporter.export_state("data/blender_export.json", state_data)
+    except Exception as e:
+        pass # Non-critical for API failure
         
-        # Export for Blender on step
-        try:
-            state_data = {
-                "time": sim_clock.current_time,
-                "spacecraft": [sc.model_dump() for sc in constellation.get_all_spacecraft()],
-                "states": {sc_id: state.model_dump() for sc_id, state in constellation.states.items()}
-            }
-            BlenderExporter.export_state("data/blender_export.json", state_data)
-        except Exception as e:
-            pass # Non-critical for API failure
-            
     return {"time": sim_clock.current_time}
 
 @app.post("/api/simulation/run")
