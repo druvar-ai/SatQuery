@@ -3,6 +3,7 @@ import time
 
 API_URL = "http://localhost:8000"
 
+def setup_demo():
     print("Initializing SatQuery Judge Demo...")
     
     # Check simulation engine availability
