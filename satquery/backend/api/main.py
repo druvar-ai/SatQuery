@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import datetime
 import uuid
 
@@ -23,6 +23,8 @@ from satquery.simulation.blender import BlenderExporter
 from satquery.backend.models.optical.adapters import SatMAEAdapter, SatlasPretrainAdapter
 from satquery.backend.models.sar.adapters import SARMAEAdapter, SARHubAdapter
 from satquery.backend.models.vlm.adapters import VLMAdapter
+from satquery.backend.simulation.scenarios import get_scenario, list_scenarios, SCENARIO_REGISTRY
+from satquery.backend.simulation.events import MissionEvent
 
 # Register models
 registry.register(SatMAEAdapter())
@@ -50,6 +52,7 @@ sim_clock = SimulationClock(
     start_time=datetime.datetime.now(datetime.timezone.utc),
     end_time=datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)
 )
+active_scenario_id: Optional[str] = None  # Track which scenario is loaded
 
 @app.get("/health")
 def health_check():
@@ -72,10 +75,20 @@ def get_spacecraft_state(sc_id: str):
 
 @app.get("/api/simulation/state")
 def get_simulation_state():
+    scenario_info = None
+    if active_scenario_id and active_scenario_id in SCENARIO_REGISTRY:
+        s = SCENARIO_REGISTRY[active_scenario_id]
+        scenario_info = {
+            "scenario_id": s.scenario_id,
+            "name": s.name,
+            "celestial_body_id": s.celestial_body_id,
+            "description": s.description,
+        }
     return {
         "clock": sim_clock.model_dump(),
         "spacecraft_count": len(constellation.get_all_spacecraft()),
-        "engine": settings.simulation_engine
+        "engine": settings.simulation_engine,
+        "active_scenario": scenario_info,
     }
 
 @app.post("/api/simulation/start")
@@ -165,37 +178,96 @@ def get_simulation_status():
     }
 
 @app.post("/api/demo/setup")
-def setup_demo_scenario():
-    from satquery.backend.spacecraft.model import Spacecraft, Sensor
-    from satquery.backend.orbit.elements import OrbitalElements
+def setup_demo_scenario(data: dict = None):
+    """Load a mission scenario from the scenario registry.
     
-    # Clear existing
+    Accepts {"scenario_id": "earth_observation"} etc.
+    Defaults to earth_observation if no scenario_id provided.
+    """
+    global active_scenario_id
+    
+    scenario_id = "earth_observation"
+    if data and isinstance(data, dict):
+        scenario_id = data.get("scenario_id", "earth_observation")
+    
+    try:
+        scenario = get_scenario(scenario_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    # Clear existing state
     constellation.states.clear()
     constellation.spacecraft.clear()
+    constellation.orbit_elements.clear()
+    constellation.trajectory_cache.clear()
     
-    # Add 10 satellites (optical + SAR mix)
-    for i in range(10):
-        sensor_type = "optical" if i % 2 == 0 else "sar"
-        sensor_id = f"s{i}-1"
-        sc = Spacecraft(
-            spacecraft_id=f"sat-{i}",
-            name=f"Sat {i}",
-            spacecraft_type="observation",
-            celestial_body_id="earth",
-            sensors=[Sensor(sensor_id=sensor_id, sensor_type=sensor_type, field_of_view_deg=15.0)]
-        )
-        elements = OrbitalElements(
-            semi_major_axis_km=7000.0 + (i*50),
-            eccentricity=0.001,
-            inclination_deg=98.0,
-            raan_deg=i*36.0,
-            arg_periapsis_deg=0.0,
-            true_anomaly_deg=i*36.0,
-            epoch=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
-        )
-        constellation.add_spacecraft(sc, elements)
-        
-    return {"status": "success", "message": "Demo scenario initialized with 10 spacecraft."}
+    # Load spacecraft from scenario
+    for cfg in scenario.spacecraft_configs:
+        constellation.add_spacecraft(cfg.spacecraft, cfg.elements)
+    
+    # Reset clock to scenario epoch and duration
+    sim_clock.start_time = scenario.epoch
+    sim_clock.current_time = scenario.epoch
+    sim_clock.end_time = scenario.epoch + datetime.timedelta(hours=scenario.duration_hours)
+    sim_clock.running = False
+    sim_clock.speed = 1.0
+    sim_clock.timestep_seconds = 60.0
+    
+    active_scenario_id = scenario_id
+    
+    # Initial propagation so states are available immediately
+    constellation.propagate_all(sim_clock.current_time)
+    
+    return {
+        "status": "success",
+        "scenario_id": scenario_id,
+        "message": f"Loaded scenario '{scenario.name}' with {len(scenario.spacecraft_configs)} spacecraft.",
+    }
+
+
+@app.get("/api/scenarios")
+def get_scenarios():
+    """List all available mission scenarios."""
+    return list_scenarios()
+
+
+@app.get("/api/scenarios/{scenario_id}")
+def get_scenario_detail(scenario_id: str):
+    """Get full details of a specific scenario."""
+    try:
+        scenario = get_scenario(scenario_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {
+        "scenario_id": scenario.scenario_id,
+        "name": scenario.name,
+        "description": scenario.description,
+        "celestial_body_id": scenario.celestial_body_id,
+        "epoch": scenario.epoch.isoformat(),
+        "duration_hours": scenario.duration_hours,
+        "spacecraft_count": len(scenario.spacecraft_configs),
+        "spacecraft": [cfg.spacecraft.model_dump() for cfg in scenario.spacecraft_configs],
+        "events": [e.model_dump() for e in scenario.events],
+    }
+
+
+@app.get("/api/simulation/events")
+def get_simulation_events():
+    """Get mission events for the active scenario with status relative to current sim time."""
+    if not active_scenario_id or active_scenario_id not in SCENARIO_REGISTRY:
+        return []
+    
+    scenario = SCENARIO_REGISTRY[active_scenario_id]
+    elapsed_sec = (sim_clock.current_time - scenario.epoch).total_seconds()
+    
+    return [
+        {
+            **e.model_dump(),
+            "status": e.status(elapsed_sec),
+            "status_icon": e.status_icon(elapsed_sec),
+        }
+        for e in scenario.events
+    ]
 
 @app.post("/api/observations/plan")
 def plan_observation(target_data: dict):
@@ -250,6 +322,30 @@ def get_query_history(db: Session = Depends(get_db)):
         "answer": h.response_summary,
         "confidence": h.confidence_value
     } for h in history]
+
+@app.post("/api/simulation/speed")
+def set_simulation_speed(data: dict):
+    speed = float(data.get("speed", 1.0))
+    # Base timestep is 1 second, so speed directly maps to seconds per step
+    sim_clock.speed = speed
+    sim_clock.timestep_seconds = 1.0
+    return {"status": "speed_updated", "speed": sim_clock.speed}
+
+@app.get("/api/spacecraft/{sc_id}/trajectory")
+def get_spacecraft_trajectory(sc_id: str):
+    """Returns the full cached trajectory for drawing 3D orbit lines."""
+    try:
+        times, pos, vel, alt = constellation.trajectory_cache[sc_id]
+        # times are datetime objects (not UNIX timestamps)
+        return {
+            "spacecraft_id": sc_id,
+            "times_iso": [t.isoformat() if isinstance(t, datetime.datetime) else str(t) for t in times],
+            "position_km": pos.tolist(),
+            "velocity_km_s": vel.tolist(),
+            "altitude_km": alt.tolist(),
+        }
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Trajectory not found in cache")
 
 # --- PART 2 AI ENDPOINTS ---
 

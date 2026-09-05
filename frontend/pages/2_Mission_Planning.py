@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="Mission Planning", page_icon="🗓️", layout="wide")
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8001"
 
 st.title("Mission Planning")
 st.markdown("Schedule new observation opportunities across celestial bodies.")

@@ -4,7 +4,7 @@ import json
 
 st.set_page_config(page_title="SatQuery AI", page_icon="🧠", layout="wide")
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8001"
 
 st.title("SatQuery Intelligence")
 st.markdown("Natural-language satellite observation queries powered by AI.")
