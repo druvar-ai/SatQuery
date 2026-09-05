@@ -20,7 +20,7 @@ import math
 
 st.set_page_config(page_title="Mission Simulation", page_icon="🛰️", layout="wide")
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8001"
 
 # ─────────────────────────────────────────────────
 # Helper functions
